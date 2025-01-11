@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  - job_name: 'host'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'python3'
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          instance: 'container'
+          hosts: 'aws_bookupdate'
+   
+  - job_name: 'wordpress'
+    static_configs:
+      - targets: ['3.112.244.29:9100']
+        labels:
+          instance: 'lightsail'
+  
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      # 預設 module（可以覆蓋）
+      module: [http_2xx_check, tcp_connect, icmp_ping, dns_query]
+    static_configs:
+      - targets:
+          - https://www.rising-shop-dg.com  
+          - https://www.rising-shop-dg.com/wp-admin
+          - https://www.google.com      
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target  # 將目標地址映射到 `target`
+      - source_labels: [__param_target]
+        target_label: instance  #標籤中紀錄測試的目標
+      - target_label: __address__
+        replacement: blackboxexporter:9115  # Blackbox Exporter 的地址
+

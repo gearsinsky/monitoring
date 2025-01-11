@@ -1,0 +1,80 @@
+modules:
+  # HTTP 2xx 測試網站是否正常
+  http_2xx_check:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: []  # 默認 2xx
+      preferred_ip_protocol: "ip4" 
+      follow_redirects: true
+      tls_config:
+        insecure_skip_verify: false
+
+  # 憑證有效性檢查
+  #https_cert_check:
+  #prober: http
+  #timeout: 5s
+  #http:
+  #method: GET
+  #fail_if_ssl: false
+  #tls_config:
+  #insecure_skip_verify: false
+  #preferred_ip_protocol: "ip4"  # 使用 IPv4
+  #fail_if_not_ssl: true  # 必須是 HTTPS
+  #valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+
+  # TCP 連線檢查
+  #tcp_connect:
+  #prober: tcp
+  #timeout: 5s
+
+  # ICMP Ping 測試
+  icmp_check:
+    prober: icmp
+    timeout: 3s
+    icmp:
+      preferred_ip_protocol: "ip4"
+
+  # DNS 查詢測試
+  #dns_check:
+  # prober: dns
+  # timeout: 5s
+  # dns:
+  #   query_name: "www.rising-shop-dg.com"
+        #resolver: "127.0.0.11:53"
+        #   query_type: "A"
+        #preferred_ip_protocol: "ip4"
+        #valid_rcodes: ["NOERROR"]
+
+  # HTTPS 憑證到期檢查（特定站點）
+  #https_custom_cert_check:
+  #prober: http
+  #timeout: 5s
+  #http:
+  #method: GET
+  #preferred_ip_protocol: "ip4"
+  #tls_config:
+  #insecure_skip_verify: false
+  #ca_file: "/etc/blackbox_exporter/custom_cert.crt"
+
+  # SMTP 連接檢查
+  #smtp_check:
+    #prober: tcp
+      # timeout: 5s
+      #tcp:
+      #query_response:
+        #- expect: "^220"
+          #- send: "EHLO blackbox\r"
+          #     - expect: "^250"
+
+  # 自定義 Query Response 檢查
+  #tcp_query_check:
+    #prober: tcp
+      #timeout: 5s
+      #tcp:
+      #query_response:
+        #- send: "custom_request"
+          # - expect: "expected_respons"
+          
