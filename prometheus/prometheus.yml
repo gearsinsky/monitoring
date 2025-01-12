@@ -25,7 +25,12 @@ scrape_configs:
       - targets: ['3.112.244.29:9100']
         labels:
           instance: 'lightsail'
-  
+  - job_name: 'pushgateway'
+    static_configs:
+      - targets: [prometheus_pushgateway:9091]
+        labels:
+          instance: 'revenue'
+
   - job_name: 'blackbox'
     metrics_path: /probe
     params:

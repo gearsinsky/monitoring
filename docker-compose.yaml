@@ -1,4 +1,4 @@
-version: '3.8'
+#version: '3.8'
 
 services:
   prometheus:
@@ -47,6 +47,14 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     restart: always
+   
+  prometheus_pushgateway:
+    image: prom/pushgateway
+    container_name: prometheus_pushgateway
+    ports:
+      - "9091:9091"
+    restart: always
+
 
 volumes:
   grafana-data:
