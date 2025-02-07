@@ -1,0 +1,112 @@
+from datetime import datetime
+import requests
+from dotenv import load_dotenv
+import os
+
+# 加載 .env 檔案中的環境變數
+load_dotenv(dotenv_path="/home/ubuntu/books/.env")
+
+# 讀取環境變數
+woocommerce_key = os.getenv("CONSUMER_KEY")
+woocommerce_secret = os.getenv("CONSUMER_SECRET")
+pushgateway_url = os.getenv("PUSHGATEWAY_URL")  # Prometheus Pushgateway URL
+
+if not woocommerce_key or not woocommerce_secret:
+    raise ValueError("無法從環境變數中讀取 CONSUMER_KEY 或 CONSUMER_SECRET")
+if not pushgateway_url:
+    raise ValueError("無法從環境變數中讀取 PUSHGATEWAY_URL")
+
+# WooCommerce API 設定
+API_URL = "https://www.rising-shop-dg.com/wp-json/wc/v3/orders"
+
+def get_orders_total_by_month(year, month):
+    """
+    根據指定年份與月份查詢 WooCommerce 訂單總金額（不篩選狀態）
+    """
+    start_date = f"{year}-{month:02d}-01T00:00:00"
+    if month == 12:
+        end_date = f"{year+1}-01-01T00:00:00"
+    else:
+        end_date = f"{year}-{month+1:02d}-01T00:00:00"
+
+    # API 請求參數
+    params = {
+        "consumer_key": woocommerce_key,
+        "consumer_secret": woocommerce_secret,
+        "after": start_date,
+        "before": end_date,
+        "per_page": 100  # 一次最多取回 100 筆
+    }
+
+    total_amount = 0.0
+    page = 1
+
+    while True:
+        # 增加分頁參數
+        params["page"] = page
+        response = requests.get(API_URL, params=params)
+
+        if response.status_code != 200:
+            raise Exception(f"API 請求失敗: {response.status_code} - {response.text}")
+
+        orders = response.json()
+
+        if not orders:
+            break
+
+        # 計算總金額
+        for order in orders:
+            total_amount += float(order["total"])
+
+        page += 1
+
+    return total_amount
+
+##def push_to_prometheus(metric_name, value, labels=None):
+#    """
+#    傳送數據到 Prometheus Pushgateway
+#    """
+#    labels_str = ""
+#    if labels:
+#        labels_str = ",".join([f'{key}="{value}"' for key, value in labels.items()])
+#
+#    data = f"{metric_name}{{{labels_str}}} {value}\n"
+#    response = requests.post(f"{pushgateway_url}/metrics/job/woocommerce", data=data)
+#
+#    if response.status_code != 202:
+#        raise Exception(f"Pushgateway 請求失敗: {response.status_code} - {response.text}")
+def push_to_prometheus(metric_name, value, labels=None):
+    labels_str = ""
+    if labels:
+        labels_str = ",".join([f'{key}="{value}"' for key, value in labels.items()])
+    
+    data = f"{metric_name} {value}\n" 
+    # 打印數據，確認格式正確
+    print(f"推送的數據: {data}")
+    
+    response = requests.post(f"{pushgateway_url}/metrics/job/woocommerce", data=data)
+
+    if response.status_code != 202:
+        raise Exception(f"Pushgateway 請求失敗: {response.status_code} - {response.text}")
+
+
+if __name__ == "__main__":
+    # 取得當前的年份與月份
+    now = datetime.now()
+    year, month = now.year, now.month
+
+    try:
+        # 獲取當前月份的訂單總金額
+        total = get_orders_total_by_month(year, month)
+        print(f"{year} 年 {month} 月的 WooCommerce 訂單總金額為: ${total:.2f}")
+
+        # 傳送到 Prometheus Pushgateway
+        push_to_prometheus(
+            metric_name="woocommerce_monthly_revenue",
+            value=total,
+            labels={"year": year, "month": month}
+        )
+        print("成功將數據傳送到 Prometheus Pushgateway")
+    except Exception as e:
+        print(f"操作失敗: {e}")
+
